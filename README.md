@@ -1,130 +1,56 @@
-# M5 - Consultas SQL con JOINs y UNION ALL
+Objetivo
+Este archivo m5_consultas_joins.sql contiene las consultas SQL del entregable M5 - Consultas JOINs para el proyecto RetailPro.
+El propósito es construir una vista enriquecida combinando tablas para su uso en Power BI y, además, responder consultas de negocio con LEFT JOIN (clientes y productos sin ventas).
 
-## Autor
+Base de datos utilizada
+Se usa la base Ventas_Tech_DB con las tablas:
 
-**Rocío Valdez**
+ventas (hechos)
+clientes (dimensión)
+productos (dimensión)
+categorias (dimensión)
+Nota importante sobre la consigna
+La consigna menciona datos como “Online/Presencial” y “territorios/segmento”, pero en la BD provista no se encontró información (no existen columnas/tabla relacionadas a esas dimensiones).
+Por lo tanto:
 
----
+En la Consulta 1 se reemplaza el “region/territorio” por clientes.ciudad y se deja segmento como NULL porque no existe en el modelo.
+En la Consulta 4 el “canal” se resuelve como constante ('Ventas') porque no hay campo canal ni forma de distinguir Online vs Presencial con los datos actuales.
+Consultas incluidas
+Consulta 1 — Vista base del proyecto (INNER JOIN)
+Cruza ventas con:
 
-# Descripción
+clientes para obtener nombre_cliente y region (desde ciudad)
+productos para obtener nombre_producto
+categorias para obtener categoria
+Incluye también el cálculo:
 
-En esta actividad se desarrollaron consultas SQL utilizando **INNER JOIN**, **LEFT JOIN** y **UNION ALL** para integrar información de distintas tablas del proyecto **RetailPro**.
+total_venta = cantidad * precio_unitario*
+Además agrega:
 
-El objetivo fue construir una vista enriquecida que sirva como fuente de datos para Power BI, además de identificar clientes sin compras, productos sin ventas y consolidar las ventas por canal.
+canal = 'Ventas' (constante, ya que no existe canal en la BD)
+segmento = NULL (no existe en la BD)
+Consulta 2 — Clientes sin ventas (LEFT JOIN + WHERE IS NULL)
+Identifica clientes de clientes que no aparecen en ventas:
 
----
+LEFT JOIN ventas
+filtro: WHERE v.id_venta IS NULL
+Retorna nombre, email y fecha_registro.
 
-# Consulta 1 - Vista base (INNER JOIN)
+Consulta 3 — Productos sin ventas (LEFT JOIN + WHERE IS NULL)
+Identifica productos que no tienen registros en ventas:
 
-Se utilizó **INNER JOIN** para relacionar las tablas:
+LEFT JOIN ventas
+filtro: WHERE v.id_venta IS NULL
+Retorna nombre_producto, categoria y precio.
 
-- ventas
-- clientes
-- productos
-- territorios
+Consulta 4 — Consolidado por canal (UNION ALL / agregación)
+La consigna pide UNION ALL para “Online y Presencial” y luego GROUP BY canal.
+Como no hay fuente de canal (Online/Presencial) en la BD, se consolida todo bajo un canal fijo:
 
-Esta consulta reúne en una única vista la siguiente información:
-
-- Fecha de venta
-- Nombre del cliente
-- Segmento
-- Región
-- Producto
-- Categoría
-- Cantidad
-- Precio unitario
-- Total de venta
-- Canal
-
-Esta consulta será utilizada como base para el dashboard de Power BI.
-
-### ¿Por qué INNER JOIN?
-
-Se eligió INNER JOIN porque únicamente interesan las ventas que poseen información completa en todas las tablas relacionadas. Si alguna venta no tuviera un cliente, producto o territorio asociado, no aparecería en el resultado, evitando registros incompletos para el análisis.
-
----
-
-# Consulta 2 - Clientes sin ventas (LEFT JOIN)
-
-Se utilizó **LEFT JOIN** entre la tabla **clientes** y la tabla **ventas**.
-
-Posteriormente se aplicó el filtro:
-
-```sql
-WHERE ventas.id_venta IS NULL
-```
-
-De esta forma se obtienen únicamente los clientes registrados que nunca realizaron una compra.
-
-### ¿Por qué LEFT JOIN?
-
-LEFT JOIN conserva todos los registros de la tabla clientes, incluso cuando no existe una venta relacionada. Esto permite identificar fácilmente clientes inactivos para futuras campañas comerciales o acciones de fidelización.
-
----
-
-# Consulta 3 - Productos sin ventas (LEFT JOIN)
-
-Se utilizó **LEFT JOIN** entre la tabla **productos** y la tabla **ventas**.
-
-Luego se aplicó:
-
-```sql
-WHERE ventas.id_venta IS NULL
-```
-
-Con esta consulta se identifican los productos que nunca registraron ventas.
-
-### ¿Por qué es útil?
-
-Permite detectar artículos con bajo rendimiento comercial, facilitando decisiones como promociones, descuentos o incluso la discontinuación de productos.
-
----
-
-# Consulta 4 - Consolidado por canal (UNION ALL)
-
-Para construir el consolidado se utilizó **UNION ALL**, combinando las ventas de los canales:
-
-- Online
-- Presencial
-
-Posteriormente se realizó un **GROUP BY** para calcular el total vendido por cada canal.
-
-### ¿Por qué UNION ALL?
-
-UNION ALL mantiene absolutamente todos los registros.
-
-En este caso no interesa eliminar duplicados, ya que cada venta representa una transacción diferente y debe conservarse para obtener un total correcto por canal.
-
----
-
-# Diferencia entre INNER JOIN, LEFT JOIN y UNION ALL
-
-## INNER JOIN
-
-Devuelve únicamente los registros que tienen coincidencia en ambas tablas.
-
-Se utiliza cuando únicamente interesa trabajar con información completa.
-
----
-
-## LEFT JOIN
-
-Devuelve todos los registros de la tabla principal, incluso cuando no existe información relacionada en la segunda tabla.
-
-Los registros sin coincidencia aparecen con valores **NULL**.
-
----
-
-## UNION ALL
-
-Combina los resultados de varias consultas manteniendo todos los registros, incluso si existen filas duplicadas.
-
-Es ideal para consolidar información proveniente de distintas fuentes sin perder datos.
-
----
-
-# Conclusión
-
-Las consultas desarrolladas permiten construir una base de datos enriquecida para análisis en Power BI y responder preguntas de negocio relevantes, como identificar clientes sin compras, productos sin movimiento y comparar el desempeño de los distintos canales de venta.
-
-El uso adecuado de **INNER JOIN**, **LEFT JOIN** y **UNION ALL** garantiza consultas eficientes, datos completos y una mejor preparación de la información para la generación de indicadores y dashboards.
+canal = 'Ventas'
+total_por_canal = SUM(cantidad * precio_unitario)*
+Criterios de diseño (resumen técnico)
+INNER JOIN para la vista enriquecida (todas las filas deben tener match entre hechos y dimensiones).
+LEFT JOIN + WHERE ... IS NULL para “sin ventas” (mantiene la dimensión completa y filtra las que no tienen match).
+Cálculo de métricas con total_venta = cantidad * precio_unitario.
+Adaptación de campos no disponibles: se usa ciudad como región y se fija canal como 'Ventas' por ausencia de datos Online/Presencial y territorios/segmento.*
