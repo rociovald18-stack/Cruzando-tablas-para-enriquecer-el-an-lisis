@@ -10,14 +10,22 @@
 -- ===========================================
 
 SELECT
-    ...
+    v.fecha_venta,
+    c.nombre AS nombre_cliente,
+    c.ciudad AS region,
+    p.nombre_producto,
+    cat.nombre_categoria AS categoria,
+    v.cantidad,
+    v.precio_unitario,
+    (v.cantidad * v.precio_unitario) AS total_venta
 FROM ventas v
 INNER JOIN clientes c
-    ON ...
+    ON v.id_cliente = c.id_cliente
 INNER JOIN productos p
-    ON ...
-INNER JOIN territorios t
-    ON ...
+    ON v.id_producto = p.id_producto
+INNER JOIN categorias cat
+    ON p.id_categoria = cat.id_categoria;
+
 
 -- ===========================================
 -- CONSULTA 2
@@ -25,11 +33,14 @@ INNER JOIN territorios t
 -- ===========================================
 
 SELECT
-    ...
+    c.nombre,
+    c.email,
+    c.fecha_registro
 FROM clientes c
 LEFT JOIN ventas v
-    ON ...
-WHERE ... IS NULL;
+    ON c.id_cliente = v.id_cliente
+WHERE v.id_venta IS NULL;
+
 
 -- ===========================================
 -- CONSULTA 3
@@ -37,31 +48,30 @@ WHERE ... IS NULL;
 -- ===========================================
 
 SELECT
-    ...
+    p.nombre_producto,
+    cat.nombre_categoria,
+    p.precio
 FROM productos p
 LEFT JOIN ventas v
-    ON ...
-WHERE ... IS NULL;
+    ON p.id_producto = v.id_producto
+INNER JOIN categorias cat
+    ON p.id_categoria = cat.id_categoria
+WHERE v.id_venta IS NULL;
+
 
 -- ===========================================
 -- CONSULTA 4
--- Consolidado por canal
+-- Consolidado de ventas
 -- ===========================================
 
 SELECT
     canal,
-    SUM(total_venta) AS total
+    SUM(total_venta) AS total_por_canal
 FROM
 (
-    SELECT ..., 'Online' AS canal
+    SELECT
+        (cantidad * precio_unitario) AS total_venta,
+        'Ventas' AS canal
     FROM ventas
-    WHERE canal='Online'
-
-    UNION ALL
-
-    SELECT ..., 'Presencial' AS canal
-    FROM ventas
-    WHERE canal='Presencial'
-) ventas_consolidadas
-
+) AS ventas_consolidadas
 GROUP BY canal;
